@@ -18,6 +18,7 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Spinner } from "@/components/ui/Spinner";
 
 type IssueForm = z.infer<typeof createIssueSchema>;
+
 const NewIssuePage = () => {
   const {
     register,
@@ -30,6 +31,21 @@ const NewIssuePage = () => {
   const router = useRouter();
   const [error, setError] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const onSubmit = handleSubmit(async (data) => {
+    await fetch("/api/issues", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }).then((res) => {
+      if (res.ok) {
+        router.push("/issues");
+        setIsSubmitting(true);
+      } else {
+        setError("An error occurred");
+        setIsSubmitting(false);
+      }
+    });
+  });
   return (
     <div className="max-w-xl ">
       {error && (
@@ -39,23 +55,7 @@ const NewIssuePage = () => {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <form
-        className="p-5 space-y-3"
-        onSubmit={handleSubmit(async (data) => {
-          await fetch("/api/issues", {
-            method: "POST",
-            body: JSON.stringify(data),
-          }).then((res) => {
-            if (res.ok) {
-              router.push("/issues");
-              setIsSubmitting(true);
-            } else {
-              setError("An error occurred");
-              setIsSubmitting(false);
-            }
-          });
-        })}
-      >
+      <form className="p-5 space-y-3" onSubmit={onSubmit}>
         <Input type="text" placeholder="Title" {...register("title")}></Input>
         {<ErrorMessage>{errors.title?.message}</ErrorMessage>}
         <Controller
