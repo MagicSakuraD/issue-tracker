@@ -6,27 +6,34 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import SimpleMDE from "react-simplemde-editor";
 import "easymde/dist/easymde.min.css";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, set } from "react-hook-form";
 import { Form } from "@/components/ui/form";
 import { useRouter } from "next/navigation";
-
+import { createIssueSchema } from "../../validationSchema";
 import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
-
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { z } from "zod";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { Spinner } from "@/components/ui/Spinner";
 
-interface IssueForm {
-  title: string;
-  description: string;
-}
-
+type IssueForm = z.infer<typeof createIssueSchema>;
 const NewIssuePage = () => {
-  const { register, control, handleSubmit } = useForm<IssueForm>();
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<IssueForm>({
+    resolver: zodResolver(createIssueSchema),
+  });
   const router = useRouter();
   const [error, setError] = React.useState("");
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   return (
     <div className="max-w-xl ">
       {error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="">
           <ExclamationTriangleIcon className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
@@ -41,13 +48,16 @@ const NewIssuePage = () => {
           }).then((res) => {
             if (res.ok) {
               router.push("/issues");
+              setIsSubmitting(true);
             } else {
-              setError("An unexpected error occurred.");
+              setError("An error occurred");
+              setIsSubmitting(false);
             }
           });
         })}
       >
         <Input type="text" placeholder="Title" {...register("title")}></Input>
+        {<ErrorMessage>{errors.title?.message}</ErrorMessage>}
         <Controller
           name="description"
           control={control}
@@ -55,8 +65,11 @@ const NewIssuePage = () => {
             <SimpleMDE placeholder="Description" {...field}></SimpleMDE>
           )}
         ></Controller>
-
-        <Button>Submit New Issue</Button>
+        {<ErrorMessage>{errors.description?.message}</ErrorMessage>}
+        <Button disabled={isSubmitting}>
+          Submit New Issue
+          {isSubmitting && <Spinner />}
+        </Button>
       </form>
     </div>
   );
